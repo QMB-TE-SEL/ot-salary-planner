@@ -250,20 +250,20 @@ table.t th:first-child{text-align:left}
     <h2>เงินเดือนและสวัสดิการ</h2>
     <div class="field">
       <label for="salary">ฐานเงินเดือนหลัก (บาท)</label>
-      <input id="salary" type="number" min="0" step="0.01" v-model.number="s.salary">
+      <input id="salary" type="number" min="0" step="0.01" v-model.number="c.salary">
     </div>
 
     <div class="group">
-      <label class="toggle"><input type="checkbox" v-model="s.shuttle"> ขึ้นรถรับส่งบริษัท</label>
-      <div class="sub" v-if="!s.shuttle">
-        <div class="field"><label>ค่ารถต่อวัน (บาท/วัน) (วันที่ลาทั้งหมด {{ calc.leaveDays }} วัน)</label><input type="number" min="0" step="0.01" v-model.number="s.carRate"></div>
+      <label class="toggle"><input type="checkbox" v-model="c.shuttle"> ขึ้นรถรับส่งบริษัท</label>
+      <div class="sub" v-if="!c.shuttle">
+        <div class="field"><label>ค่ารถต่อวัน (บาท/วัน) (วันที่ลาทั้งหมด {{ calc.leaveDays }} วัน)</label><input type="number" min="0" step="0.01" v-model.number="c.carRate"></div>
       </div>
     </div>
 
     <div class="group">
-      <label class="toggle"><input type="checkbox" v-model="s.nightOn"> ค่ากะดึก (Night Shift)</label>
-      <div class="sub" v-if="s.nightOn">
-        <div class="field"><label>ค่ากะ (บาท/วัน)</label><input type="number" min="0" step="0.01" v-model.number="s.nightRate"></div>
+      <label class="toggle"><input type="checkbox" v-model="c.nightOn"> ค่ากะดึก (Night Shift)</label>
+      <div class="sub" v-if="c.nightOn">
+        <div class="field"><label>ค่ากะ (บาท/วัน)</label><input type="number" min="0" step="0.01" v-model.number="c.nightRate"></div>
         <div class="stack1">
           <div class="field"><label>กะดึกเริ่มจากวันที่</label><input type="date" v-model="cur.nightFrom"></div>
           <div class="field"><label>ถึงวันที่</label><input type="date" v-model="cur.nightTo"></div>
@@ -273,30 +273,30 @@ table.t th:first-child{text-align:left}
     </div>
 
     <div class="group">
-      <label class="toggle"><input type="checkbox" v-model="s.mealOn"> ค่าอาหาร OT (Meal OT)</label>
-      <div class="sub" v-if="s.mealOn">
+      <label class="toggle"><input type="checkbox" v-model="c.mealOn"> ค่าอาหาร OT (Meal OT)</label>
+      <div class="sub" v-if="c.mealOn">
         <div class="row2">
-          <div class="field"><label>บาท/มื้อ</label><input type="number" min="0" step="0.01" v-model.number="s.mealRate"></div>
-          <div class="field"><label>OT ขั้นต่ำ (ชม.)</label><input type="number" min="0" step="0.5" v-model.number="s.mealMinHours"></div>
+          <div class="field"><label>บาท/มื้อ</label><input type="number" min="0" step="0.01" v-model.number="c.mealRate"></div>
+          <div class="field"><label>OT ขั้นต่ำ (ชม.)</label><input type="number" min="0" step="0.5" v-model.number="c.mealMinHours"></div>
         </div>
       </div>
     </div>
 
     <div class="group">
-      <label class="toggle"><input type="checkbox" v-model="s.langOn"> ค่าภาษา (Language)</label>
-      <div class="sub" v-if="s.langOn">
-        <div class="field"><label>ค่าภาษา (บาท/เดือน)</label><input type="number" min="0" step="0.01" v-model.number="s.lang"></div>
+      <label class="toggle"><input type="checkbox" v-model="c.langOn"> ค่าภาษา (Language)</label>
+      <div class="sub" v-if="c.langOn">
+        <div class="field"><label>ค่าภาษา (บาท/เดือน)</label><input type="number" min="0" step="0.01" v-model.number="c.lang"></div>
       </div>
     </div>
   </section>
 
   <section class="card">
     <h2>รายการหัก</h2>
-    <label class="toggle" style="margin-top:0"><input type="checkbox" v-model="s.ssoOn"> หักประกันสังคม</label>
-    <div class="sub" v-if="s.ssoOn">
+    <label class="toggle" style="margin-top:0"><input type="checkbox" v-model="c.ssoOn"> หักประกันสังคม</label>
+    <div class="sub" v-if="c.ssoOn">
       <div class="row2">
-        <div class="field"><label>อัตรา (%)</label><input type="number" min="0" step="0.1" v-model.number="s.ssoRate"></div>
-        <div class="field"><label>เพดานสูงสุด (บาท)</label><input type="number" min="0" v-model.number="s.ssoCap"></div>
+        <div class="field"><label>อัตรา (%)</label><input type="number" min="0" step="0.1" v-model.number="c.ssoRate"></div>
+        <div class="field"><label>เพดานสูงสุด (บาท)</label><input type="number" min="0" v-model.number="c.ssoCap"></div>
       </div>
     </div>
     <div class="field" style="margin-top:12px">
@@ -349,7 +349,7 @@ table.t th:first-child{text-align:left}
       <span><i style="background:var(--sun)"></i>อาทิตย์ (หยุด)</span>
       <span><i style="background:var(--safety-soft);border:1px solid var(--safety)"></i>นักขัตฤกษ์ 2 เท่า 9 ชม. หลังจากนั้น 3 เท่า</span>
       <span><i style="background:var(--sat)"></i>เสาร์ 1 เท่า 9 ชม. หลังจากนั้น 3 เท่า</span>
-      <span><i style="background:var(--card);border:1px solid var(--ot15)"></i>ธรรมดา 1.5 เท่า เริ่ม 18:30<template v-if="s.nightOn"> (กะดึก 06:30)</template></span>
+      <span><i style="background:var(--card);border:1px solid var(--ot15)"></i>ธรรมดา 1.5 เท่า เริ่ม 18:30<template v-if="c.nightOn"> (กะดึก 06:30)</template></span>
     </div>
   </section>
 
@@ -364,8 +364,8 @@ table.t th:first-child{text-align:left}
     <div class="otrem" :class="otStat.cls">{{ otStat.over ? 'เกิน ' : 'เหลือ ' }}{{ otStat.diff }} ชม.</div>
     <div class="otalert" v-if="otStat.over">OT เกิน {{ otStat.limit }} ชม.</div>
     <div class="otset">
-      <button type="button" class="chip" :class="{on: s.otLimit === n}" v-for="n in [80, 110, 140]" :key="n" @click="s.otLimit = n">{{ n }}</button>
-      <input type="number" min="1" step="1" v-model.number="s.otLimit" aria-label="กำหนดชั่วโมง OT สูงสุดเอง">
+      <button type="button" class="chip" :class="{on: c.otLimit === n}" v-for="n in [80, 110, 140]" :key="n" @click="c.otLimit = n">{{ n }}</button>
+      <input type="number" min="1" step="1" v-model.number="c.otLimit" aria-label="กำหนดชั่วโมง OT สูงสุดเอง">
       <span class="hint" style="margin:0">ชม.</span>
     </div>
   </section>
@@ -390,10 +390,10 @@ table.t th:first-child{text-align:left}
     <table class="t">
       <tr><td>ฐานเงินเดือนหลัก</td><td class="n">{{ money(calc.salary) }} บาท</td></tr>
       <tr><td>รายได้จาก OT รวม</td><td class="n">{{ money(calc.otAmt) }} บาท</td></tr>
-      <tr v-if="!s.shuttle"><td>ค่ารถ ({{ calc.carDays }} วัน)</td><td class="n">{{ money(calc.car) }} บาท</td></tr>
-      <tr v-if="s.nightOn"><td>ค่ากะดึก ({{ calc.nightDays }} วัน)</td><td class="n">{{ money(calc.night) }} บาท</td></tr>
-      <tr v-if="s.mealOn"><td>ค่าอาหาร OT ({{ calc.mealCount }} มื้อ)</td><td class="n">{{ money(calc.meal) }} บาท</td></tr>
-      <tr v-if="s.langOn"><td>ค่าภาษา</td><td class="n">{{ money(calc.lang) }} บาท</td></tr>
+      <tr v-if="!c.shuttle"><td>ค่ารถ ({{ calc.carDays }} วัน)</td><td class="n">{{ money(calc.car) }} บาท</td></tr>
+      <tr v-if="c.nightOn"><td>ค่ากะดึก ({{ calc.nightDays }} วัน)</td><td class="n">{{ money(calc.night) }} บาท</td></tr>
+      <tr v-if="c.mealOn"><td>ค่าอาหาร OT ({{ calc.mealCount }} มื้อ)</td><td class="n">{{ money(calc.meal) }} บาท</td></tr>
+      <tr v-if="c.langOn"><td>ค่าภาษา</td><td class="n">{{ money(calc.lang) }} บาท</td></tr>
       <tr><td>รวมค่ารถ/ค่ากะ/อื่นๆ</td><td class="n">{{ money(calc.other) }} บาท</td></tr>
       <tr class="tot"><td>รายได้รวมทั้งหมด (ก่อนหัก)</td><td class="n">{{ money(calc.gross) }} บาท</td></tr>
       <tr class="neg"><td>หักประกันสังคม</td><td class="n">- {{ money(calc.sso) }} บาท</td></tr>
@@ -556,7 +556,7 @@ const fmtH = (h) => String(Math.round(h * 100) / 100);
   Payroll period of month M = 25th of M-1 up to 24th of M. It is paid on the 5th of M+1.
 */
 const emptyMonth = () => ({ days: {}, nightFrom: '', nightTo: '', late: 0 });
-const isEmptyMonth = (m) => !m || (!Object.keys(m.days || {}).length && !m.nightFrom && !m.nightTo && !(Number(m.late) > 0));
+const isEmptyMonth = (m) => !m || (!m.cfg && !Object.keys(m.days || {}).length && !m.nightFrom && !m.nightTo && !(Number(m.late) > 0));
 const defaultSettings = () => ({
   salary: 23000, daysPerMonth: 30, hoursPerDay: 9, sundayMode: 'holiday',
   shuttle: false, carRate: 0,
@@ -616,6 +616,26 @@ createApp({
     watch(curKey, (k) => ensure(k), { flush: 'sync' });
     const cur = computed(() => months[curKey.value] || emptyMonth());
 
+    /* ค่าเงินเดือน/สวัสดิการแยกตามเดือน: เดือนที่ยังไม่เคยแก้ใช้ค่าของเดือนก่อนหน้า (หรือค่าเริ่มต้น) พอแก้เดือนไหนจะเก็บค่าของเดือนนั้นเอง */
+    const CFG_KEYS = ['salary', 'shuttle', 'carRate', 'nightOn', 'nightRate', 'mealOn', 'mealRate', 'mealMinHours', 'langOn', 'lang', 'ssoOn', 'ssoRate', 'ssoCap', 'otLimit'];
+    function effCfg(key) {
+      let best = null;
+      Object.keys(months).forEach((k) => { if (k <= key && months[k] && months[k].cfg && (best === null || k > best)) best = k; });
+      const base = {};
+      CFG_KEYS.forEach((k) => { base[k] = s[k]; });
+      return Object.assign(base, best ? months[best].cfg : {});
+    }
+    const cfgNow = computed(() => effCfg(curKey.value));
+    const c = new Proxy({}, {
+      get: (_, k) => effCfg(curKey.value)[k],
+      set: (_, k, v) => {
+        const m = ensure(curKey.value);
+        if (!m.cfg) m.cfg = effCfg(curKey.value);
+        m.cfg[k] = v;
+        return true;
+      }
+    });
+
     const py = computed(() => vm.value === 0 ? vy.value - 1 : vy.value);
     const pm = computed(() => vm.value === 0 ? 11 : vm.value - 1);
     const years = computed(() => {
@@ -626,7 +646,7 @@ createApp({
     const period = computed(() => periodInfo(vy.value, vm.value));
     const prevPeriod = computed(() => periodInfo(py.value, pm.value));
 
-    const hourly = computed(() => (s.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9));
+    const hourly = computed(() => (cfgNow.value.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9));
 
     /* day records live under the calendar month of the date */
     const dayOf = (ds) => { const m = months[ds.slice(0, 7)]; return (m && m.days[ds]) || {}; };
@@ -649,6 +669,7 @@ createApp({
     function compute(key) {
       const [y, mo] = key.split('-').map(Number);
       const md = months[key] || emptyMonth();
+      const c = effCfg(key);
       const { start, end } = periodDates(y, mo - 1);
       const hrs = { '1': 0, '1.5': 0, '2': 0, '3': 0 };
       let carDays = 0, leaveDays = 0, nightDays = 0, mealCount = 0;
@@ -662,21 +683,21 @@ createApp({
         b.list.forEach(([r, hh]) => { hrs[String(r)] += hh; });
         const worked = b.kind === 'work' ? true : h > 0;
         if (worked) carDays++;
-        if (s.nightOn && worked && md.nightFrom && md.nightTo && ds >= md.nightFrom && ds <= md.nightTo) nightDays++;
-        if (s.mealOn && h > 0 && h >= (Number(s.mealMinHours) || 0)) mealCount++;
+        if (c.nightOn && worked && md.nightFrom && md.nightTo && ds >= md.nightFrom && ds <= md.nightTo) nightDays++;
+        if (c.mealOn && h > 0 && h >= (Number(c.mealMinHours) || 0)) mealCount++;
       }
-      const hr = (s.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9);
+      const hr = (c.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9);
       const amt = { '1': hr * hrs['1'], '1.5': hr * hrs['1.5'] * 1.5, '2': hr * hrs['2'] * 2, '3': hr * hrs['3'] * 3 };
       const otAmt = amt['1'] + amt['1.5'] + amt['2'] + amt['3'];
       const totalHrs = hrs['1'] + hrs['1.5'] + hrs['2'] + hrs['3'];
-      const salary = Number(s.salary) || 0;
-      const car = !s.shuttle ? (Number(s.carRate) || 0) * carDays : 0;
-      const night = s.nightOn ? (Number(s.nightRate) || 0) * nightDays : 0;
-      const meal = s.mealOn ? (Number(s.mealRate) || 0) * mealCount : 0;
-      const lang = s.langOn ? (Number(s.lang) || 0) : 0;
+      const salary = Number(c.salary) || 0;
+      const car = !c.shuttle ? (Number(c.carRate) || 0) * carDays : 0;
+      const night = c.nightOn ? (Number(c.nightRate) || 0) * nightDays : 0;
+      const meal = c.mealOn ? (Number(c.mealRate) || 0) * mealCount : 0;
+      const lang = c.langOn ? (Number(c.lang) || 0) : 0;
       const other = car + night + meal + lang;
       const gross = salary + otAmt + other;
-      const sso = s.ssoOn ? Math.min(salary * (Number(s.ssoRate) || 0) / 100, Number(s.ssoCap) || 0) : 0;
+      const sso = c.ssoOn ? Math.min(salary * (Number(c.ssoRate) || 0) / 100, Number(c.ssoCap) || 0) : 0;
       const late = Number(md.late) || 0;
       const net = gross - sso - late;
       return { hrs, amt, otAmt, totalHrs, salary, car, night, meal, lang, other, gross, sso, late, net, carDays, leaveDays, nightDays, mealCount };
@@ -684,7 +705,7 @@ createApp({
     const calc = computed(() => compute(curKey.value));
     const prev = computed(() => compute(mKey(py.value, pm.value)));
     const otStat = computed(() => {
-      const limit = Number(s.otLimit) > 0 ? Number(s.otLimit) : 80;
+      const limit = Number(cfgNow.value.otLimit) > 0 ? Number(cfgNow.value.otLimit) : 80;
       const used = Math.round(calc.value.totalHrs * 100) / 100;
       const diff = Math.round(Math.abs(limit - used) * 100) / 100;
       const ratio = used / limit * 100;
@@ -737,7 +758,7 @@ createApp({
     }
     const isNightDay = (ds) => {
       const m = cur.value;
-      return !!(s.nightOn && m.nightFrom && m.nightTo && ds >= m.nightFrom && ds <= m.nightTo);
+      return !!(cfgNow.value.nightOn && m.nightFrom && m.nightTo && ds >= m.nightFrom && ds <= m.nightTo);
     };
     const fmtT = (t) => t.replace(':', '.');
     const rangeText = (e) => (e && e.start && e.end) ? `${fmtT(e.start)}-${fmtT(e.end)}` : 'เลือกช่วงเวลา';
@@ -860,7 +881,7 @@ createApp({
       }, 300);
     }, { deep: true });
 
-    return { s, vy, vm, py, pm, years, period, prevPeriod, monthNames, dowNames: ['อา','จ','อ','พ','พฤ','ศ','ส'], rateRows, cur, calc, prev, hourly, cells,
+    return { s, c, vy, vm, py, pm, years, period, prevPeriod, monthNames, dowNames: ['อา','จ','อ','พ','พฤ','ศ','ส'], rateRows, cur, calc, prev, hourly, cells,
       leaveMode, edit, toast, theme, toggleTheme,
       otStat, pct, money, money3, money0, rangeText, buildPresets, pickRange, toggleDD, goCustom, backToList, shift, clickDay, recalc, saveDay, resetDay, clearMonth, exportData, importData };
   }
@@ -869,6 +890,7 @@ createApp({
 });
 </script>
 <script>
+/* Vue 3.4.21 (MIT) ฝังไว้เพื่อให้ใช้งานได้โดยไม่ต้องมีอินเทอร์เน็ต */
 /**
 * vue v3.4.21
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
