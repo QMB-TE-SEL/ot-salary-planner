@@ -87,6 +87,7 @@ header.top h1{font-size:18px;margin:0;font-weight:700;display:flex;align-items:c
 input[type=number],input[type=date],input[type=time],select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;background:var(--field);min-height:40px}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .row2>*,.stack1>*,.field{min-width:0}
+.nrange{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px}
 .stack1{display:grid;grid-template-columns:minmax(0,1fr);gap:0}
 input[type=date],input[type=time]{min-width:0;max-width:100%;display:block}
 .toggle{display:flex;align-items:center;gap:10px;margin:12px 0 6px;font-weight:600;cursor:pointer}
@@ -264,10 +265,12 @@ table.t th:first-child{text-align:left}
       <label class="toggle"><input type="checkbox" v-model="c.nightOn"> ค่ากะดึก (Night Shift)</label>
       <div class="sub" v-if="c.nightOn">
         <div class="field"><label>ค่ากะ (บาท/วัน)</label><input type="number" min="0" step="0.01" v-model.number="c.nightRate"></div>
-        <div class="stack1">
-          <div class="field"><label>กะดึกเริ่มจากวันที่</label><input type="date" v-model="cur.nightFrom"></div>
-          <div class="field"><label>ถึงวันที่</label><input type="date" v-model="cur.nightTo"></div>
+        <div class="nrange" v-for="r in visibleNight" :key="r.id">
+          <div class="field"><label>กะดึกเริ่มจากวันที่</label><input type="date" v-model="r.from"></div>
+          <div class="field"><label>ถึงวันที่</label><input type="date" v-model="r.to"></div>
+          <button type="button" class="btn sm danger" @click="removeNight(r.id)">ลบช่วงนี้</button>
         </div>
+        <button type="button" class="btn sm" @click="addNight">+ เพิ่มช่วงกะดึก</button>
       </div>
       <div class="hint sub" v-else>กะดึก: ปิดใช้งานอยู่</div>
     </div>
@@ -564,7 +567,8 @@ const defaultSettings = () => ({
   mealOn: false, mealRate: 0, mealMinHours: 2,
   langOn: false, lang: 0,
   ssoOn: true, ssoRate: 5, ssoCap: 875,
-  otLimit: 80
+  otLimit: 80,
+  nightRanges: []
 });
 const monthNames = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const shortMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
@@ -643,10 +647,29 @@ createApp({
       for (let y = lo; y <= hi; y++) a.push(y);
       return a;
     });
+    const monthMin = computed(() => dKey(vy.value, vm.value, 1));
+    const monthMax = computed(() => dKey(vy.value, vm.value, new Date(vy.value, vm.value + 1, 0).getDate()));
     const period = computed(() => periodInfo(vy.value, vm.value));
     const prevPeriod = computed(() => periodInfo(py.value, pm.value));
 
     const hourly = computed(() => (cfgNow.value.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9));
+
+    /* ช่วงกะดึกเก็บรวมไว้ที่เดียว คาบเกี่ยวหลายเดือนได้ ตั้งครั้งเดียวใช้ทุกเดือน */
+    const inNightRange = (ds) => s.nightRanges.some((r) => r.from && r.to && ds >= r.from && ds <= r.to);
+    const visibleNight = computed(() => s.nightRanges.filter((r) => !r.from || !r.to || (r.from <= monthMax.value && r.to >= monthMin.value)));
+    const newId = () => String(Date.now()) + Math.random().toString(36).slice(2, 6);
+    function addNight() { s.nightRanges.push({ id: newId(), from: monthMin.value, to: monthMax.value }); }
+    function removeNight(id) { const i = s.nightRanges.findIndex((r) => r.id === id); if (i >= 0) s.nightRanges.splice(i, 1); }
+    // ย้ายช่วงกะดึกแบบเก่า (เก็บแยกตามเดือน) มารวมกัน
+    function migrateNight() {
+      Object.keys(months).forEach((k) => {
+        const m = months[k];
+        if (m && m.nightFrom && m.nightTo) {
+          if (!s.nightRanges.some((r) => r.from === m.nightFrom && r.to === m.nightTo)) s.nightRanges.push({ id: newId(), from: m.nightFrom, to: m.nightTo });
+          m.nightFrom = ''; m.nightTo = '';
+        }
+      });
+    }
 
     /* day records live under the calendar month of the date */
     const dayOf = (ds) => { const m = months[ds.slice(0, 7)]; return (m && m.days[ds]) || {}; };
@@ -673,18 +696,29 @@ createApp({
       const { start, end } = periodDates(y, mo - 1);
       const hrs = { '1': 0, '1.5': 0, '2': 0, '3': 0 };
       let carDays = 0, leaveDays = 0, nightDays = 0, mealCount = 0;
+      // OT และค่าอาหาร OT: นับตามรอบตัด OT (25 ถึง 24)
       for (const t = new Date(start); t <= end; t.setDate(t.getDate() + 1)) {
         const dow = t.getDay();
         const ds = dKey(t.getFullYear(), t.getMonth(), t.getDate());
         const dd = dayOf(ds);
-        if (dd.leave) { leaveDays++; continue; }
+        if (dd.leave) continue;
         const h = Number(dd.hours) || 0;
         const b = buckets(dd, dow);
         b.list.forEach(([r, hh]) => { hrs[String(r)] += hh; });
+        if (c.mealOn && h > 0 && h >= (Number(c.mealMinHours) || 0)) mealCount++;
+      }
+      // ค่ารถ ค่ากะดึก และวันลา: นับทั้งเดือนปฏิทิน (วันที่ 1 ถึงสิ้นเดือน) ไม่ตัดรอบเหมือน OT
+      const dim = new Date(y, mo, 0).getDate();
+      for (let d = 1; d <= dim; d++) {
+        const dow = new Date(y, mo - 1, d).getDay();
+        const ds = dKey(y, mo - 1, d);
+        const dd = dayOf(ds);
+        if (dd.leave) { leaveDays++; continue; }
+        const h = Number(dd.hours) || 0;
+        const b = buckets(dd, dow);
         const worked = b.kind === 'work' ? true : h > 0;
         if (worked) carDays++;
-        if (c.nightOn && worked && md.nightFrom && md.nightTo && ds >= md.nightFrom && ds <= md.nightTo) nightDays++;
-        if (c.mealOn && h > 0 && h >= (Number(c.mealMinHours) || 0)) mealCount++;
+        if (c.nightOn && worked && inNightRange(ds)) nightDays++;
       }
       const hr = (c.salary || 0) / (s.daysPerMonth || 30) / (s.hoursPerDay || 9);
       const amt = { '1': hr * hrs['1'], '1.5': hr * hrs['1.5'] * 1.5, '2': hr * hrs['2'] * 2, '3': hr * hrs['3'] * 3 };
@@ -756,10 +790,7 @@ createApp({
       if (m < 0) { m = 11; y--; } else if (m > 11) { m = 0; y++; }
       vm.value = m; vy.value = y;
     }
-    const isNightDay = (ds) => {
-      const m = cur.value;
-      return !!(cfgNow.value.nightOn && m.nightFrom && m.nightTo && ds >= m.nightFrom && ds <= m.nightTo);
-    };
+    const isNightDay = (ds) => !!(effCfg(ds.slice(0, 7)).nightOn && inNightRange(ds));
     const fmtT = (t) => t.replace(':', '.');
     const rangeText = (e) => (e && e.start && e.end) ? `${fmtT(e.start)}-${fmtT(e.end)}` : 'เลือกช่วงเวลา';
     // รายการช่วงเวลา OT: เริ่มมาตรฐาน + เวลาเลิกขั้นต่ำ 1 ชม. ทีละ 30 นาที
@@ -851,6 +882,7 @@ createApp({
           Object.keys(months).forEach((k) => delete months[k]);
           Object.entries(data.months || {}).forEach(([k, v]) => { months[k] = Object.assign(emptyMonth(), v); });
           ensure(curKey.value);
+          migrateNight();
           showToast('นำเข้าข้อมูลสำเร็จ');
         } catch (e) { showToast('ไฟล์ไม่ถูกต้อง'); }
       };
@@ -868,6 +900,7 @@ createApp({
           if (k.startsWith('month:')) months[k.slice(6)] = Object.assign(emptyMonth(), v);
         });
         ensure(curKey.value);
+        migrateNight();
       } catch (e) { /* start empty */ }
       ready.value = true;
     });
@@ -881,7 +914,7 @@ createApp({
       }, 300);
     }, { deep: true });
 
-    return { s, c, vy, vm, py, pm, years, period, prevPeriod, monthNames, dowNames: ['อา','จ','อ','พ','พฤ','ศ','ส'], rateRows, cur, calc, prev, hourly, cells,
+    return { s, c, monthMin, monthMax, visibleNight, addNight, removeNight, vy, vm, py, pm, years, period, prevPeriod, monthNames, dowNames: ['อา','จ','อ','พ','พฤ','ศ','ส'], rateRows, cur, calc, prev, hourly, cells,
       leaveMode, edit, toast, theme, toggleTheme,
       otStat, pct, money, money3, money0, rangeText, buildPresets, pickRange, toggleDD, goCustom, backToList, shift, clickDay, recalc, saveDay, resetDay, clearMonth, exportData, importData };
   }
