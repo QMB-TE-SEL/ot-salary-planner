@@ -291,6 +291,13 @@ table.t th:first-child{text-align:left}
         <div class="field"><label>ค่าภาษา (บาท/เดือน)</label><input type="number" min="0" step="0.01" v-model.number="c.lang"></div>
       </div>
     </div>
+
+    <div class="group">
+      <label class="toggle"><input type="checkbox" v-model="c.targetOn"> ค่าเป้า</label>
+      <div class="sub" v-if="c.targetOn">
+        <div class="field"><label>ค่าเป้า (บาท/เดือน)</label><input type="number" min="0" step="0.01" v-model.number="c.target"></div>
+      </div>
+    </div>
   </section>
 
   <section class="card">
@@ -397,6 +404,7 @@ table.t th:first-child{text-align:left}
       <tr v-if="c.nightOn"><td>ค่ากะดึก ({{ calc.nightDays }} วัน)</td><td class="n">{{ money(calc.night) }} บาท</td></tr>
       <tr v-if="c.mealOn"><td>ค่าอาหาร OT ({{ calc.mealCount }} มื้อ)</td><td class="n">{{ money(calc.meal) }} บาท</td></tr>
       <tr v-if="c.langOn"><td>ค่าภาษา</td><td class="n">{{ money(calc.lang) }} บาท</td></tr>
+      <tr v-if="c.targetOn"><td>ค่าเป้า</td><td class="n">{{ money(calc.target) }} บาท</td></tr>
       <tr><td>รวมค่ารถ/ค่ากะ/อื่นๆ</td><td class="n">{{ money(calc.other) }} บาท</td></tr>
       <tr class="tot"><td>รายได้รวมทั้งหมด (ก่อนหัก)</td><td class="n">{{ money(calc.gross) }} บาท</td></tr>
       <tr class="neg"><td>หักประกันสังคม</td><td class="n">- {{ money(calc.sso) }} บาท</td></tr>
@@ -566,6 +574,7 @@ const defaultSettings = () => ({
   nightOn: false, nightRate: 50,
   mealOn: false, mealRate: 0, mealMinHours: 2,
   langOn: false, lang: 0,
+  targetOn: false, target: 0,
   ssoOn: true, ssoRate: 5, ssoCap: 875,
   otLimit: 80,
   nightRanges: []
@@ -621,7 +630,7 @@ createApp({
     const cur = computed(() => months[curKey.value] || emptyMonth());
 
     /* ค่าเงินเดือน/สวัสดิการแยกตามเดือน: เดือนที่ยังไม่เคยแก้ใช้ค่าของเดือนก่อนหน้า (หรือค่าเริ่มต้น) พอแก้เดือนไหนจะเก็บค่าของเดือนนั้นเอง */
-    const CFG_KEYS = ['salary', 'shuttle', 'carRate', 'nightOn', 'nightRate', 'mealOn', 'mealRate', 'mealMinHours', 'langOn', 'lang', 'ssoOn', 'ssoRate', 'ssoCap', 'otLimit'];
+    const CFG_KEYS = ['salary', 'shuttle', 'carRate', 'nightOn', 'nightRate', 'mealOn', 'mealRate', 'mealMinHours', 'langOn', 'lang', 'targetOn', 'target', 'ssoOn', 'ssoRate', 'ssoCap', 'otLimit'];
     function effCfg(key) {
       let best = null;
       Object.keys(months).forEach((k) => { if (k <= key && months[k] && months[k].cfg && (best === null || k > best)) best = k; });
@@ -729,12 +738,13 @@ createApp({
       const night = c.nightOn ? (Number(c.nightRate) || 0) * nightDays : 0;
       const meal = c.mealOn ? (Number(c.mealRate) || 0) * mealCount : 0;
       const lang = c.langOn ? (Number(c.lang) || 0) : 0;
-      const other = car + night + meal + lang;
+      const target = c.targetOn ? (Number(c.target) || 0) : 0;
+      const other = car + night + meal + lang + target;
       const gross = salary + otAmt + other;
       const sso = c.ssoOn ? Math.min(salary * (Number(c.ssoRate) || 0) / 100, Number(c.ssoCap) || 0) : 0;
       const late = Number(md.late) || 0;
       const net = gross - sso - late;
-      return { hrs, amt, otAmt, totalHrs, salary, car, night, meal, lang, other, gross, sso, late, net, carDays, leaveDays, nightDays, mealCount };
+      return { hrs, amt, otAmt, totalHrs, salary, car, night, meal, lang, target, other, gross, sso, late, net, carDays, leaveDays, nightDays, mealCount };
     }
     const calc = computed(() => compute(curKey.value));
     const prev = computed(() => compute(mKey(py.value, pm.value)));
