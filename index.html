@@ -309,6 +309,21 @@ table.t th:first-child{text-align:left}
         <div class="field"><label>เพดานสูงสุด (บาท)</label><input type="number" min="0" v-model.number="c.ssoCap"></div>
       </div>
     </div>
+    <div class="group">
+      <label class="toggle"><input type="checkbox" v-model="c.taxOn"> หักภาษี</label>
+      <div class="sub" v-if="c.taxOn">
+        <div class="field"><label>ภาษีหักจริงตามสลิป (บาท)</label><input type="number" min="0" step="0.01" placeholder="ประมาณการอัตโนมัติ" v-model.number="c.taxActual"></div>
+        <div class="field"><label>รายได้สะสมทั้งปี (จากสลิปเดือนก่อน)</label><input type="number" min="0" step="0.01" placeholder="เว้นว่าง = ประมาณการ x12" v-model.number="c.ytdIncome"></div>
+        <div class="field"><label>ภาษีสะสมทั้งปี (จากสลิปเดือนก่อน)</label><input type="number" min="0" step="0.01" v-model.number="c.ytdTax"></div>
+        <div class="field"><label>เริ่มงานปีนี้เดือน</label>
+          <select v-model.number="c.startMonth">
+            <option :value="0">ทำงานเต็มปี</option>
+            <option v-for="(n, i) in monthNames" :key="i" :value="i + 1">{{ n }}</option>
+          </select>
+        </div>
+        <div class="field"><label>ค่าลดหย่อนอื่นๆ (บาท/ปี)</label><input type="number" min="0" step="1" v-model.number="c.otherDeduct"></div>
+      </div>
+    </div>
     <div class="field" style="margin-top:12px">
       <label>หักมาสาย / อื่นๆ (บาท) ของเดือนนี้</label>
       <input type="number" min="0" step="0.01" v-model.number="cur.late">
@@ -408,6 +423,7 @@ table.t th:first-child{text-align:left}
       <tr><td>รวมค่ารถ/ค่ากะ/อื่นๆ</td><td class="n">{{ money(calc.other) }} บาท</td></tr>
       <tr class="tot"><td>รายได้รวมทั้งหมด (ก่อนหัก)</td><td class="n">{{ money(calc.gross) }} บาท</td></tr>
       <tr class="neg"><td>หักประกันสังคม</td><td class="n">- {{ money(calc.sso) }} บาท</td></tr>
+      <tr class="neg" v-if="c.taxOn"><td>หักภาษี<template v-if="calc.taxEst"> ({{ calc.taxMode === 'cum' ? 'ประมาณการแบบสะสม' : 'ประมาณการ' }})</template></td><td class="n">- {{ money(calc.tax) }} บาท</td></tr>
       <tr class="neg"><td>หักมาสาย / อื่นๆ</td><td class="n">- {{ money(calc.late) }} บาท</td></tr>
       <tr class="tot"><td>เงินสุทธิที่จะได้รับ</td><td class="n">{{ money(calc.net) }} บาท</td></tr>
     </table>
@@ -575,6 +591,7 @@ const defaultSettings = () => ({
   mealOn: false, mealRate: 0, mealMinHours: 2,
   langOn: false, lang: 0,
   targetOn: false, target: 0,
+  taxOn: false, taxActual: '', otherDeduct: 0, ytdIncome: '', ytdTax: '', startMonth: 0,
   ssoOn: true, ssoRate: 5, ssoCap: 875,
   otLimit: 80,
   nightRanges: []
@@ -592,6 +609,31 @@ const periodInfo = (y, m) => {
     range: `${start.getDate()} ${shortMonths[start.getMonth()]} – ${end.getDate()} ${shortMonths[end.getMonth()]} ${end.getFullYear()}`,
     pay: `เงินออก ${pd.getDate()} ${shortMonths[pd.getMonth()]} ${pd.getFullYear()}`
   };
+};
+
+// ภาษีเงินได้บุคคลธรรมดา (ประมาณการ): รายได้ต่อเดือน x 12 หักค่าใช้จ่าย 50% ไม่เกิน 100,000 หักส่วนตัว 60,000 ประกันสังคม (ไม่เกิน 9,000/ปี) และลดหย่อนอื่น
+const TAX_BRACKETS = [[150000, 0], [300000, 0.05], [500000, 0.10], [750000, 0.15], [1000000, 0.20], [2000000, 0.25], [5000000, 0.30], [Infinity, 0.35]];
+const annualTax = (net) => {
+  let tax = 0, prev = 0;
+  for (const [cap, rate] of TAX_BRACKETS) {
+    if (net > prev) tax += (Math.min(net, cap) - prev) * rate;
+    prev = cap;
+  }
+  return tax;
+};
+// แบบสะสม (ใกล้วิธีที่บริษัทใช้): รายได้ทั้งปีโดยประมาณ = รายได้สะสมก่อนเดือนนี้ + รายได้เดือนนี้ x จำนวนเดือนที่เหลือ (รวมเดือนนี้)
+// ภาษีเดือนนี้ = (ภาษีทั้งปีโดยประมาณ - ภาษีที่หักสะสมแล้ว) / จำนวนเดือนที่เหลือ
+const estimateCumulativeTax = (o) => {
+  const annual = o.ytdIncome + o.gross * o.monthsLeft;
+  const expense = Math.min(annual * 0.5, 100000);
+  const net = Math.max(0, annual - expense - 60000 - Math.min(o.sso * o.ssoMonths, 9000) - o.other);
+  return Math.max(0, Math.round((annualTax(net) - o.ytdTax) / o.monthsLeft * 100) / 100);
+};
+const estimateMonthlyTax = (gross, sso, other) => {
+  const annual = gross * 12;
+  const expense = Math.min(annual * 0.5, 100000);
+  const net = Math.max(0, annual - expense - 60000 - Math.min(sso * 12, 9000) - other);
+  return Math.round(annualTax(net) / 12 * 100) / 100;
 };
 
 createApp({
@@ -630,13 +672,16 @@ createApp({
     const cur = computed(() => months[curKey.value] || emptyMonth());
 
     /* ค่าเงินเดือน/สวัสดิการแยกตามเดือน: เดือนที่ยังไม่เคยแก้ใช้ค่าของเดือนก่อนหน้า (หรือค่าเริ่มต้น) พอแก้เดือนไหนจะเก็บค่าของเดือนนั้นเอง */
-    const CFG_KEYS = ['salary', 'shuttle', 'carRate', 'nightOn', 'nightRate', 'mealOn', 'mealRate', 'mealMinHours', 'langOn', 'lang', 'targetOn', 'target', 'ssoOn', 'ssoRate', 'ssoCap', 'otLimit'];
+    const CFG_KEYS = ['salary', 'shuttle', 'carRate', 'nightOn', 'nightRate', 'mealOn', 'mealRate', 'mealMinHours', 'langOn', 'lang', 'targetOn', 'target', 'taxOn', 'taxActual', 'otherDeduct', 'ytdIncome', 'ytdTax', 'startMonth', 'ssoOn', 'ssoRate', 'ssoCap', 'otLimit'];
     function effCfg(key) {
       let best = null;
       Object.keys(months).forEach((k) => { if (k <= key && months[k] && months[k].cfg && (best === null || k > best)) best = k; });
       const base = {};
       CFG_KEYS.forEach((k) => { base[k] = s[k]; });
-      return Object.assign(base, best ? months[best].cfg : {});
+      const out = Object.assign(base, best ? months[best].cfg : {});
+      // ตัวเลขจากสลิปของแต่ละเดือน (ภาษีจริง รายได้สะสม ภาษีสะสม) ไม่ยกมาจากเดือนก่อน
+      if (best !== key) { out.taxActual = ''; out.ytdIncome = ''; out.ytdTax = ''; }
+      return out;
     }
     const cfgNow = computed(() => effCfg(curKey.value));
     const c = new Proxy({}, {
@@ -743,8 +788,26 @@ createApp({
       const gross = salary + otAmt + other;
       const sso = c.ssoOn ? Math.min(salary * (Number(c.ssoRate) || 0) / 100, Number(c.ssoCap) || 0) : 0;
       const late = Number(md.late) || 0;
-      const net = gross - sso - late;
-      return { hrs, amt, otAmt, totalHrs, salary, car, night, meal, lang, target, other, gross, sso, late, net, carDays, leaveDays, nightDays, mealCount };
+      let tax = 0, taxEst = false, taxMode = '';
+      if (c.taxOn) {
+        const act = c.taxActual;
+        if (act !== '' && act != null && Number.isFinite(Number(act))) tax = Number(act);
+        else {
+          taxEst = true;
+          const yi = c.ytdIncome;
+          if (yi !== '' && yi != null && Number.isFinite(Number(yi))) {
+            const monthsLeft = 12 - mo + 1;
+            const sm = Number(c.startMonth) || 0;
+            tax = estimateCumulativeTax({ gross, sso, other: Number(c.otherDeduct) || 0, ytdIncome: Number(yi), ytdTax: Number(c.ytdTax) || 0, monthsLeft, ssoMonths: sm >= 1 && sm <= 12 ? 12 - sm + 1 : 12 });
+            taxMode = 'cum';
+          } else {
+            tax = estimateMonthlyTax(gross, sso, Number(c.otherDeduct) || 0);
+            taxMode = 'simple';
+          }
+        }
+      }
+      const net = gross - sso - late - tax;
+      return { hrs, amt, otAmt, totalHrs, salary, car, night, meal, lang, target, other, gross, sso, late, tax, taxEst, taxMode, net, carDays, leaveDays, nightDays, mealCount };
     }
     const calc = computed(() => compute(curKey.value));
     const prev = computed(() => compute(mKey(py.value, pm.value)));
